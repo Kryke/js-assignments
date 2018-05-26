@@ -17,8 +17,27 @@
  *  ]
  */
 function createCompassPoints() {
-    throw new Error('Not implemented');
-    var sides = ['N','E','S','W'];  // use array of cardinal directions only!
+    var resArr = [], direction = "", degrees = 0;
+    var sides = ['N', 'E', 'S', 'W'];  // use array of cardinal directions only!
+    for (var i = 0; i < sides.length; i++) {
+        var btwcardinal = (i == 0 || i == 2) ? (sides[i] + sides[i + 1])
+            : (sides[i == 3 ? 0 : i + 1] + sides[i]);
+        for (var count = 0; count < 8; count++) {
+            switch (count) {
+                case 0: direction = sides[i]; break;
+                case 1: direction = sides[i] + 'b' + sides[i == 3 ? 0 : i + 1]; break;
+                case 2: direction = sides[i] + btwcardinal; break;
+                case 3: direction = btwcardinal + "b" + sides[i]; break;
+                case 4: direction = btwcardinal; break;
+                case 5: direction = btwcardinal + "b" + sides[i == 3 ? 0 : i + 1]; break;
+                case 6: direction = sides[i == 3 ? 0 : i + 1] + btwcardinal; break;
+                case 7: direction = sides[i == 3 ? 0 : i + 1] + "b" + sides[i]; break;
+            }
+            resArr.push({ abbreviation: direction, azimuth: degrees });
+            degrees += 11.25;
+        }
+    }
+    return resArr;
 }
 
 
@@ -55,8 +74,80 @@ function createCompassPoints() {
  *
  *   'nothing to do' => 'nothing to do'
  */
-function* expandBraces(str) {
-    throw new Error('Not implemented');
+function* expandBraces(str) {   const OPEN_BR = '{';
+    const CLOSE_BR = '}';
+    const SEPARATOR = ',';
+
+    yield* parse(str);
+
+    function parse(str) {
+        var items = [''];
+        var pos = 0;
+        while (str[pos]) {
+            if (str[pos] !== OPEN_BR) {
+                items = combine(items, [readUntil([OPEN_BR])]);
+            } 
+            else 
+            {
+                pos += 1;
+                items = combine(items, parseExpr());
+            }
+        }
+        return items;
+
+        function parseExpr() {
+            var items = [];
+            var sepCount = 0;
+            while (str[pos] !== CLOSE_BR) 
+            {
+                if (str[pos] === SEPARATOR) 
+                {
+                    pos += 1;
+                    sepCount += 1;
+                } 
+                else 
+                {
+                    items = items.concat(parseExprPart());
+                }
+            }
+            if (items.length < sepCount + 1) items.push('');
+            pos += 1;
+            return items;
+        }
+
+        function parseExprPart() {
+            var items = [''];
+            while (str[pos] !== SEPARATOR && str[pos] !== CLOSE_BR) 
+            {
+                if (str[pos] !== OPEN_BR) 
+                {
+                    items = combine(items, [readUntil([SEPARATOR, OPEN_BR, CLOSE_BR])]);
+                } else 
+                {
+                    pos += 1;
+                    items = combine(items, parseExpr());
+                }
+            }
+            return items;
+        }
+
+        function combine(leftItems, rightItems) {
+            const res = [];
+            for (var left of leftItems)
+                for (var right of rightItems)
+                    res.push(left + right);
+            return res;
+        }
+
+        function readUntil(chars) {
+            var res = '';
+            while (str[pos] && chars.every(x => x !== str[pos])) {
+                res += str[pos];
+                pos += 1;
+            }
+            return res;
+        }
+    }
 }
 
 
@@ -89,7 +180,34 @@ function* expandBraces(str) {
  *
  */
 function getZigZagMatrix(n) {
-    throw new Error('Not implemented');
+    var height = n, width = n;
+
+    var mtx = [];
+    for (var i = 0; i < n; i++)
+        mtx[i] = [];
+
+    var i=1, j=1;
+    for (var e = 0; e < n*n; e++) {
+        mtx[i-1][j-1] = e;
+        if ((i + j) % 2 == 0) {
+            // Even stripes
+            if (j < n) 
+                j++;
+            else
+                i += 2;
+            if (i > 1) 
+                i--;
+        } else {
+            // Odd stripes
+            if (i < n) 
+                i++;
+            else
+                j += 2;
+            if (j > 1) 
+                j--;
+        }
+    }
+    return mtx;
 }
 
 
@@ -114,7 +232,38 @@ function getZigZagMatrix(n) {
  *
  */
 function canDominoesMakeRow(dominoes) {
-    throw new Error('Not implemented');
+    var res = "" + dominoes.shift();
+    var i = 0;
+    while (dominoes.length != 0) {
+        if (dominoes[i][0] == res[0]) {
+            res = dominoes[i].reverse() + res;
+            dominoes.splice(i, 1);
+            i = 0;
+            continue;
+        }
+        if (dominoes[i][1] == res[0]) {
+            res = dominoes[i] + res;
+            dominoes.splice(i, 1);
+            i = 0;
+            continue;
+        }
+        if (dominoes[i][0] == res[res.length - 1]) {
+            res = res + dominoes[i];
+            dominoes.splice(i, 1);
+            i = 0;
+            continue;
+        }
+        if (dominoes[i][1] == res[res.length - 1]) {
+            res = res + dominoes[i].reverse();
+            dominoes.splice(i, 1);
+            i = 0;
+            continue;
+        }
+        i++;
+        if (i == dominoes.length)
+            return false;
+    }
+    return true;
 }
 
 
@@ -138,7 +287,20 @@ function canDominoesMakeRow(dominoes) {
  * [ 1, 2, 4, 5]          => '1,2,4,5'
  */
 function extractRanges(nums) {
-    throw new Error('Not implemented');
+    var res = "";
+    for (var j = 0; j < nums.length; j++) {
+        var i = 0;
+        if ((nums[j + 1] - nums[j] == 1) && (nums[j + 2] - nums[j] == 2)) {
+            while (nums[j + 1] - nums[j] == 1) {
+                i++;
+                j++;
+            }
+            res += `${nums[j - i]}-${nums[j]},`;
+
+        } else
+            res += nums[j] + ",";
+    }
+    return res.slice(0, res.length - 1);
 }
 
 module.exports = {
